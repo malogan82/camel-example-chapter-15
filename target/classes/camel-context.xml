@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:camel="http://camel.apache.org/schema/spring"
+    xmlns:foo="http://example.com/person"
+    xmlns:prop="http://camel.apache.org/schema/placeholder"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.springframework.org/schema/beans                                           http://www.springframework.org/schema/beans/spring-beans-3.0.xsd                                          http://camel.apache.org/schema/spring                                           http://camel.apache.org/schema/spring/camel-spring.xsd">
+    <camelContext id="camel-context" xmlns="http://camel.apache.org/schema/spring">
+        <!--
+          When this route is started, it will automatically create the C:/fuse-karaf-7.0.0.fuse-000191-redhat-1/work/cbrinput directory where you can drop the
+          file that need to be processed.
+
+          The <log/> elements are used to add human-friendly business logging statements. They make it easier to see what the
+          route is doing.
+
+          The <choice/> element contains the content based router. The two <when/> clauses use XPath to define the criteria 
+          for entering that part of the route. When the country in the XML message is set to UK or US, the file will be 
+          moved to a directory for that country. The <otherwise/> element ensures that any file that does not meet the 
+          requirements for either of the <when/> elements will be moved to the C:/fuse-karaf-7.0.0.fuse-000191-redhat-1/work/cbroutput/others directory.
+        -->
+        <route id="cbr-route">
+            <from id="_from1" uri="file:C:/fuse-karaf-7.0.0.fuse-000191-redhat-1/work/cbr/input?noop=true"/>
+            <log id="_log1" message="Receiving order ${file:name}"/>
+            <choice id="_choice1">
+                <when id="_when1">
+                    <xpath id="_xpath1">/order/customer/country = 'UK'</xpath>
+                    <log id="_log2" message="Sending order ${file:name} to the UK"/>
+                    <wireTap id="_wireTap1" uri="direct:foo">
+                        <setHeader headerName="foo" id="_setHeader1">
+                            <constant>bar</constant>
+                        </setHeader>
+                    </wireTap>
+                    <to id="_to1" uri="file:C:/fuse-karaf-7.0.0.fuse-000191-redhat-1/work/cbr/output/uk"/>
+                </when>
+                <when id="_when2">
+                    <xpath id="_xpath2">/order/customer/country = 'US'</xpath>
+                    <log id="_log3" message="Sending order ${file:name} to the US"/>
+                    <wireTap id="_wireTap2" uri="direct:foo2">
+                        <setHeader headerName="foo2" id="_setHeader2">
+                            <constant>bar</constant>
+                        </setHeader>
+                    </wireTap>
+                    <to id="_to2" uri="file:C:/fuse-karaf-7.0.0.fuse-000191-redhat-1/work/cbr/output/us"/>
+                </when>
+                <otherwise id="_otherwise1">
+                    <log id="_log4" message="Sending order ${file:name} to another country"/>
+                    <wireTap id="_wireTap3" uri="direct:foo3">
+                        <setHeader headerName="foo3" id="_setHeader3">
+                            <constant>bar</constant>
+                        </setHeader>
+                    </wireTap>
+                    <to id="_to3" uri="file:C:/fuse-karaf-7.0.0.fuse-000191-redhat-1/work/cbr/output/others"/>
+                </otherwise>
+            </choice>
+            <log id="_log5" message="Done processing ${file:name}"/>
+        </route>
+        <route id="_route4">
+            <from id="_from5" uri="direct:foo"/>
+            <filter id="_filter1">
+                <language language="el">${in.headers.foo=='bar'}</language>
+                <to id="_to7" uri="seda:bar"/>
+            </filter>
+        </route>
+        <route id="_route5">
+            <from id="_from6" uri="direct:foo2"/>
+            <filter id="_filter2">
+                <language language="el">${in.headers['foo2']=='bar'}</language>
+                <to id="_to8" uri="seda:bar"/>
+            </filter>
+        </route>
+        <route id="_route6">
+            <from id="_from7" uri="direct:foo3"/>
+            <filter id="_filter3">
+                <language language="el">${in.headers.foo3=='bar'}</language>
+                <to id="_to9" uri="seda:bar"/>
+            </filter>
+        </route>
+        <route id="_route7">
+            <from id="_from8" uri="seda:bar"/>
+            <log id="_log6" message="${body}"/>
+        </route>
+    </camelContext>
+</beans>
